@@ -7,6 +7,7 @@ import Login from "./components/Login";
 import Board from "./components/Board";
 import Family from "./components/Family";
 import Preferences from "./components/Preferences";
+import Help from "./components/Help";
 
 export default function App() {
   const { session, loading, signOut } = useAuth();
@@ -38,6 +39,7 @@ export default function App() {
         <div className="who">
           {me && <span>{me.emoji} {me.name}</span>}
           <Preferences />
+          <Help />
           <button className="btn" onClick={signOut}>{t("signOut")}</button>
         </div>
       </header>

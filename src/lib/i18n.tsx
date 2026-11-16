@@ -32,6 +32,15 @@ const es = {
   errNotAuth: "No has iniciado sesión.",
   errNotAdmin: "Solo los adultos pueden crear cuentas.",
 
+  helpOpen: "Cómo se crea un usuario",
+  helpTitle: "Cómo se crea un usuario",
+  helpStep1: "Primera cuenta: en la pantalla de acceso, «Crear familia» crea la cuenta y la familia. Quien la crea queda como adulto administrador.",
+  helpStep2: "Otras personas con acceso: entra como adulto y ve a Familia → «Crear cuenta con usuario y contraseña».",
+  helpStep3: "Personas sin acceso, como niños pequeños: en Familia usa «Agregar persona sin cuenta». Un adulto tutor marca sus tareas.",
+  helpStep4: "El usuario no lleva espacios: de 3 a 20 caracteres, solo letras minúsculas, números o guion bajo. La contraseña tiene al menos 6.",
+  helpStep5: "Las cuentas se crean desde la app. Si las creas en el panel de Supabase, quedan sin familia ni tablero.",
+  helpClose: "Entendido",
+
   viewDay: "Día",
   viewWeek: "Semana",
   viewMonth: "Mes",
@@ -126,6 +135,15 @@ const en: Record<Key, string> = {
   errUserExists: "That username already exists.",
   errNotAuth: "You are not signed in.",
   errNotAdmin: "Only adults can create accounts.",
+
+  helpOpen: "How to create a user",
+  helpTitle: "How to create a user",
+  helpStep1: "First account: on the access screen, “Create family” creates the account and the family. Whoever creates it becomes the admin adult.",
+  helpStep2: "Other people with access: sign in as an adult and go to Family → “Create an account with username and password”.",
+  helpStep3: "People without access, such as young children: in Family use “Add a person without an account”. A guardian adult checks off their tasks.",
+  helpStep4: "Usernames have no spaces: 3 to 20 characters, lowercase letters, numbers or underscores only. Passwords are at least 6 characters.",
+  helpStep5: "Accounts are created from the app. If you create them in the Supabase dashboard, they end up without a family or board.",
+  helpClose: "Got it",
 
   viewDay: "Day",
   viewWeek: "Week",

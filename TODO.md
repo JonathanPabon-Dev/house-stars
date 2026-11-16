@@ -5,9 +5,9 @@ Estado base: `pnpm typecheck` pasa; no hay `TODO`/`FIXME` en `src` ni `supabase`
 
 ## 1. Despliegue (bloqueante)
 
-- [ ] **Inicializar el repositorio git.** La carpeta no es un repo, así que el workflow de GitHub Pages no puede ejecutarse. Hace falta `git init`, primer commit, remoto en GitHub y rama `main`.
-- [ ] **Cambiar el workflow a lockfile congelado.** En `.github/workflows/deploy.yml:27`, reemplazar `pnpm install --no-frozen-lockfile` por `pnpm install --frozen-lockfile` (el `pnpm-lock.yaml` ya existe y debe commitearse).
-- [ ] **Configurar GitHub Pages.** Settings → Pages → Source: GitHub Actions.
+- [x] **Inicializar el repositorio git.** Repo público creado en `JonathanPabon-Dev/house-stars`, rama `main` y primer commit.
+- [x] **Cambiar el workflow a lockfile congelado.** `.github/workflows/deploy.yml` ya usa `pnpm install --frozen-lockfile`.
+- [x] **Configurar GitHub Pages.** Publicado con GitHub Actions en https://jonathanpabon-dev.github.io/house-stars/.
 - [ ] **Crear variables del repositorio.** `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Settings → Secrets and variables → Actions → Variables.
 - [ ] **Crear `.env.local` en local** (ignorado por git) con las mismas variables para `pnpm dev`.
 - [ ] **Desplegar Supabase.** `supabase link`, `supabase db push` y `supabase functions deploy create-member`.

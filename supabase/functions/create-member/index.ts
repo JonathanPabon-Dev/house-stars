@@ -4,6 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const EMAIL_DOMAIN = "tablero.local"; // debe coincidir con src/lib/auth.tsx
+const DB_SCHEMA = "house_stars";       // el proyecto de Supabase es compartido
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,6 +23,7 @@ Deno.serve(async (req) => {
 
     // 1) Quién llama: debe ser un adulto (admin) de una familia
     const userClient = createClient(url, anon, {
+      db: { schema: DB_SCHEMA },
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
     const { data: { user } } = await userClient.auth.getUser();
@@ -45,22 +47,44 @@ Deno.serve(async (req) => {
     if (password.length < 6) return fail("short_password", "Password must be at least 6 characters", 400);
     if (!name) return fail("no_name", "Name is required", 400);
 
-    // 3) Crear la cuenta en la misma familia (app_metadata solo lo escribe el servidor)
-    const admin = createClient(url, service);
+    const admin = createClient(url, service, { db: { schema: DB_SCHEMA } });
+
+    // 3) Comprobar el usuario antes de crear la cuenta en Auth
+    const { data: existing, error: existingError } = await admin
+      .from("members")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+    if (existingError) return fail("unknown", existingError.message, 500);
+    if (existing) return fail("exists", "Username already exists", 400);
+
+    // 4) Crear la cuenta en la misma familia (app_metadata solo lo escribe el servidor)
     const { data: created, error } = await admin.auth.admin.createUser({
       email: `${username}@${EMAIL_DOMAIN}`,
       password,
       email_confirm: true,
-      app_metadata: { household_id: me.household_id, role },
+      app_metadata: { app: "house-stars", household_id: me.household_id, role },
       user_metadata: { username, display_name: name },
     });
     if (error || !created.user) {
       const m = error?.message ?? "Could not create the account";
-      return m.toLowerCase().includes("already") ? fail("exists", "Username already exists", 400) : fail("unknown", m, 400);
+      return m.toLowerCase().includes("already") ? fail("exists", "Username already exists", 400) : fail("unknown", m, 500);
     }
 
-    // El trigger ya creó la fila en members; completamos ícono y color
-    await admin.from("members").update({ emoji, color }).eq("user_id", created.user.id);
+    // 5) El trigger de auth crea la fila en house_stars.members. Si no existe, se
+    // deshace la cuenta para no dejar un usuario de Auth sin perfil.
+    const { data: member, error: memberError } = await admin
+      .from("members")
+      .select("id")
+      .eq("user_id", created.user.id)
+      .maybeSingle();
+    if (memberError || !member) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      return fail("unknown", memberError?.message ?? "The member profile was not created", 500);
+    }
+
+    // 6) Completar ícono y color
+    await admin.from("members").update({ emoji, color }).eq("id", member.id);
     return json({ ok: true, user_id: created.user.id });
   } catch (e) {
     return fail("unknown", e instanceof Error ? e.message : "Unexpected error", 500);

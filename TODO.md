@@ -10,13 +10,14 @@ Estado base: `pnpm typecheck` pasa; no hay `TODO`/`FIXME` en `src` ni `supabase`
 - [x] **Configurar GitHub Pages.** Publicado con GitHub Actions en https://jonathanpabon-dev.github.io/house-stars/.
 - [x] **Crear variables del repositorio.** `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` configuradas; el sitio ya compila con la URL del proyecto `mwdnptylqsmzadfweqgy`.
 - [x] **Crear `.env.local` en local** (ignorado por git) con las mismas variables para `pnpm dev`.
-- [ ] **Desplegar Supabase.** Bloqueado: el proyecto `mwdnptylqsmzadfweqgy` de `.env.local` no aparece en la cuenta autenticada en el CLI (org `JP Pru 2026`). Falta iniciar sesión con la cuenta dueña, luego `supabase link`, `supabase db push` y `supabase functions deploy create-member`.
-- [ ] **Desactivar "Confirm email"** en Supabase Auth (los usuarios usan un correo interno, no real).
+- [x] **Desplegar Supabase (proyecto compartido).** Esquema `house_stars` aplicado con `pnpm db:apply` (4 migraciones) y expuesto en la API; `create-member` y `signup-household` desplegadas con `--use-api`. Verificado de extremo a extremo: alta de familia, login, creación de miembros y aislamiento frente a usuarios de otras apps.
+- **No cambiar los ajustes globales de Auth.** El proyecto es compartido con otras apps: deja "Confirm email" como está. Las cuentas se crean con `email_confirm: true` desde las Edge Functions.
+- [ ] **Publicar el frontend.** Hacer push de los cambios a `main` para que GitHub Pages compile con el esquema `house_stars`, y probar el flujo real en https://jonathanpabon-dev.github.io/house-stars/.
 
 ## 2. Funcionalidad faltante
 
 - [ ] **Editar tareas existentes.** Hoy `TaskDialog.tsx` solo crea y el borrado es lógico (`useRemoveTask` → `active = false`). Permitir editar título, emoji, días y responsable; agregar `useUpdateTask` en `src/lib/data.ts`.
-- [ ] **Definir el sistema de puntos.** `tasks.points` existe en el esquema (`20261107000100_schema.sql:40`) y en `Task` (`src/lib/types.ts:22`), pero ninguna UI lo usa. Decidir: implementar puntaje/ranking por persona o eliminar la columna.
+- [ ] **Definir el sistema de puntos.** `tasks.points` existe en el esquema (`20261107000100_schema.sql:49`) y en `Task` (`src/lib/types.ts:22`), pero ninguna UI lo usa. Decidir: implementar puntaje/ranking por persona o eliminar la columna.
 - [ ] **Editar y eliminar miembros.** `Family.tsx` solo crea personas y cuentas. Falta editar nombre, emoji, color y rol, y dar de baja miembros sin perder el historial de tareas.
 - [ ] **Cambio de contraseña.** No hay flujo (el README documenta que no hay recuperación por correo). Definir si un adulto puede resetear la contraseña de otro miembro.
 - [ ] **Orden de miembros.** `sort_order` nunca se asigna (todos quedan en 0). Definir un orden explícito o confiar en `created_at`.

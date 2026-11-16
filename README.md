@@ -4,30 +4,71 @@ Tablero familiar de tareas (vistas de día, semana y mes) con login por usuario 
 Interfaz en **español e inglés** (ES/EN) y tema **claro u oscuro**.
 Stack: Vite + React + TypeScript (gestor de paquetes: pnpm), Supabase (Postgres, Auth, Realtime, Edge Functions) y GitHub Pages.
 
+> **El proyecto de Supabase es compartido con otras aplicaciones.** Por eso:
+>
+> - Todos los objetos de House Stars (tablas, funciones, políticas, índices) viven en el esquema `house_stars`.
+> - El trigger de Auth solo actúa sobre usuarios marcados con `app_metadata.app = 'house-stars'`.
+> - **No cambies ajustes globales de Auth en el panel** (por ejemplo, "Confirm email"): afectarían a las otras apps.
+
 ## 1. Base de datos (Supabase)
+
+### Puesta en marcha en el proyecto compartido
+
+1. Expón el esquema: **Project Settings → API → Exposed schemas** → agrega `house_stars` sin quitar los existentes.
+2. Enlaza el proyecto y aplica las migraciones:
 
 ```bash
 pnpm add -g supabase         # o usa: pnpm dlx supabase <comando>
 supabase login
 supabase link --project-ref TU_PROJECT_REF
-supabase db push             # aplica supabase/migrations/*
+pnpm db:apply:dry            # valida las migraciones en una transacción y revierte
+pnpm db:apply                # aplica solo las pendientes
 ```
 
-Ajustes en el panel de Supabase (Authentication → Providers → Email):
-
-- Desactiva **Confirm email** (los usuarios usan un correo interno, no real).
-- Deja habilitado el registro (así se puede crear la primera familia desde la app).
-
-### Función para crear cuentas de otras personas
-
-Un adulto crea la cuenta (usuario + contraseña) de su pareja o de sus hijos desde la pantalla **Familia**.
-Eso requiere la service role key, así que vive en una Edge Function:
+3. Despliega las Edge Functions (sin Docker, usando la API):
 
 ```bash
-supabase functions deploy create-member
+supabase functions deploy create-member --project-ref TU_PROJECT_REF --use-api
+supabase functions deploy signup-household --project-ref TU_PROJECT_REF --use-api
 ```
 
-(`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` ya las inyecta Supabase.)
+Las migraciones no crean objetos en `public`, no revocan permisos de otros esquemas y no
+borran triggers genéricos de `auth.users`.
+
+`pnpm db:apply` **no usa `supabase db push`**. El historial de migraciones de Supabase
+(`supabase_migrations.schema_migrations`) es global del proyecto y otras apps ya tienen
+versiones ahí, así que `db push` se niega a continuar. El script
+`scripts/apply-migrations.mjs` ejecuta cada archivo con `supabase db query --linked` y
+guarda su propio historial en `house_stars.schema_migrations`.
+
+### Ajustes del panel
+
+| Ajuste | Acción |
+| --- | --- |
+| Project Settings → API → Exposed schemas | Agregar `house_stars`. No quitar ni cambiar los demás esquemas. |
+| Authentication → Confirm email | **No cambiarlo**; otras apps dependen del ajuste actual. |
+| Registro / signup global | **No cambiarlo**. Las altas de House Stars pasan por las Edge Functions. |
+
+### Funciones (Edge Functions)
+
+| Función | Quién la llama | Qué hace |
+| --- | --- | --- |
+| `signup-household` | Pantalla de acceso, sin sesión | Crea la primera cuenta y su familia (botón **Crear familia**). |
+| `create-member` | Un adulto autenticado | Crea la cuenta de otra persona de su familia. |
+
+Ambas usan la service role key y crean el usuario con `email_confirm: true`, sin enviar
+correo real (el email es interno: `usuario@tablero.local`).
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase.)
+
+### Trigger de registro
+
+`house_stars.handle_new_user()` escucha los `insert` de `auth.users` y también los `update`
+que fijan `raw_app_meta_data` (GoTrue crea el usuario y aplica la metadata en dos pasos), pero
+lo primero que hace es comprobar `raw_app_meta_data->>'app'`: si no es `house-stars`, devuelve
+el usuario sin cambios. Esa metadata solo la escribe el servidor, así que los registros de las
+otras apps del proyecto compartido quedan intactos. La inserción en `members` es idempotente
+(`on conflict (user_id) do nothing`) y el trigger se llama `house_stars_on_auth_user_created`
+para no chocar con triggers de otras aplicaciones.
 
 ## 2. Desarrollo local
 
@@ -37,6 +78,9 @@ pnpm install
 pnpm dev
 pnpm typecheck               # opcional
 ```
+
+`supabase/config.toml` expone `house_stars` en la API local (`[api] schemas`). Ese archivo es
+solo para el entorno local: en el proyecto remoto los ajustes de Auth no se tocan.
 
 ## 3. Despliegue en GitHub Pages
 
@@ -57,17 +101,20 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 ## Cómo funcionan el login y los permisos
 
 - El **usuario** se convierte en un email interno (`usuario@tablero.local`). No hay recuperación de contraseña por correo: un adulto crea la cuenta de nuevo o se gestiona desde el panel de Supabase.
-- Quien usa **Crear familia** en el login queda como adulto (`admin`) de una familia nueva.
+- **Crear familia** llama a `signup-household`: la cuenta se crea en el servidor y luego la app inicia sesión con usuario y contraseña.
+- Un adulto crea cuentas de otras personas con `create-member` (Familia → Crear cuenta).
+- Quien usa **Crear familia** queda como adulto (`admin`) de una familia nueva.
 - Los adultos crean personas y vínculos de tutoría (Familia → Tutores).
 - Cada adulto administra **sus propias tareas y las de sus hijos** (tutorías muchos a muchos). Cada persona marca solo sus tareas; un adulto también las de sus hijos.
-- La seguridad real está en las políticas RLS (`supabase/migrations`). La interfaz solo las refleja.
+- La seguridad real está en las políticas RLS (`supabase/migrations`), todas en `house_stars`. La interfaz solo las refleja.
 - La anon key es pública por diseño. Nunca pongas la service role key en el frontend ni en las variables `VITE_*`.
 
 ## Estructura
 
 ```
-src/lib/          supabase, auth (usuario→email), datos (React Query), fechas, i18n, tema
+src/lib/          supabase (cliente con esquema house_stars), auth (usuario→email), datos (React Query), fechas, i18n, tema
 src/components/   Login, Board (día/semana/mes), Views, TaskDialog, Family, Preferences
-supabase/migrations/        esquema, trigger de registro, RLS, tutorías
-supabase/functions/create-member/   crea cuentas (service role)
+supabase/migrations/                  house_stars: esquema, trigger de registro, RLS, tutorías
+supabase/functions/create-member/     crea cuentas de la familia (service role)
+supabase/functions/signup-household/  crea la primera cuenta y su familia (service role)
 ```

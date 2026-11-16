@@ -1,6 +1,13 @@
 # Configuración mínima para el CLI de Supabase (desarrollo local).
-# En el proyecto remoto, estos ajustes de Auth se cambian en el panel.
+# El proyecto remoto es COMPARTIDO con otras aplicaciones: no cambies los ajustes
+# globales de Auth en el panel (por ejemplo, "Confirm email"); las cuentas se crean
+# desde las Edge Functions con email_confirm: true.
 project_id = "house-stars"
+
+[api]
+# House Stars vive en su propio esquema. En remoto hay que agregarlo a
+# Project Settings → API → Exposed schemas.
+schemas = ["public", "graphql_public", "house_stars"]
 
 [auth]
 enable_signup = true

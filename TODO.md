@@ -12,7 +12,7 @@ Estado base: `pnpm typecheck` pasa; no hay `TODO`/`FIXME` en `src` ni `supabase`
 - [x] **Crear `.env.local` en local** (ignorado por git) con las mismas variables para `pnpm dev`.
 - [x] **Desplegar Supabase (proyecto compartido).** Esquema `house_stars` aplicado con `pnpm db:apply` (4 migraciones) y expuesto en la API; `create-member` y `signup-household` desplegadas con `--use-api`. Verificado de extremo a extremo: alta de familia, login, creación de miembros y aislamiento frente a usuarios de otras apps.
 - **No cambiar los ajustes globales de Auth.** El proyecto es compartido con otras apps: deja "Confirm email" como está. Las cuentas se crean con `email_confirm: true` desde las Edge Functions.
-- [ ] **Publicar el frontend.** Hacer push de los cambios a `main` para que GitHub Pages compile con el esquema `house_stars`, y probar el flujo real en https://jonathanpabon-dev.github.io/house-stars/.
+- [x] **Publicar el frontend.** Push a `main` desplegado en GitHub Pages; el bundle servido incluye el esquema `house_stars` y `signup-household`.
 
 ## 2. Funcionalidad faltante
 

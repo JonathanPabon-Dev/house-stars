@@ -1,0 +1,10 @@
+# Configuración mínima para el CLI de Supabase (desarrollo local).
+# En el proyecto remoto, estos ajustes de Auth se cambian en el panel.
+project_id = "house-stars"
+
+[auth]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

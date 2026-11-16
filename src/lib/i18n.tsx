@@ -31,7 +31,6 @@ const es = {
   errUserExists: "Ese usuario ya existe.",
   errNotAuth: "No has iniciado sesión.",
   errNotAdmin: "Solo los adultos pueden crear cuentas.",
-  errConfirmEmail: "Cuenta creada, pero Supabase pide confirmar el correo. Desactiva «Confirm email» en Authentication → Providers → Email.",
 
   viewDay: "Día",
   viewWeek: "Semana",
@@ -127,7 +126,6 @@ const en: Record<Key, string> = {
   errUserExists: "That username already exists.",
   errNotAuth: "You are not signed in.",
   errNotAdmin: "Only adults can create accounts.",
-  errConfirmEmail: "Account created, but Supabase is asking for email confirmation. Turn off “Confirm email” in Authentication → Providers → Email.",
 
   viewDay: "Day",
   viewWeek: "Week",

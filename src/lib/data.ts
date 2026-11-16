@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "./supabase";
+import { DB_SCHEMA, supabase } from "./supabase";
 import { useAuth } from "./auth";
 import type { Completion, Guardian, Member, Task } from "./types";
 
@@ -85,7 +85,7 @@ export function useRealtime() {
   useEffect(() => {
     const ch = supabase
       .channel("task-completions")
-      .on("postgres_changes", { event: "*", schema: "public", table: "task_completions" }, () =>
+      .on("postgres_changes", { event: "*", schema: DB_SCHEMA, table: "task_completions" }, () =>
         qc.invalidateQueries({ queryKey: ["completions"] }),
       )
       .subscribe();

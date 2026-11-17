@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import Preferences from "./Preferences";
-import Help from "./Help";
 
 type Mode = "in" | "up" | "join";
 
@@ -34,7 +33,7 @@ export default function Login() {
 
   return (
     <div className="login">
-      <div className="prefs end"><Preferences /><Help /></div>
+      <div className="prefs end"><Preferences /></div>
       <div className="brand">
         <h1>⭐ {t("appName")}</h1>
         <small>{t("tagline")}</small>

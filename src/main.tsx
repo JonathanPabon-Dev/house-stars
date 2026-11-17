@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
+import Help from "./components/Help";
 import { AuthProvider } from "./lib/auth";
 import { HouseholdProvider } from "./lib/household";
 import { I18nProvider } from "./lib/i18n";
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <AuthProvider>
               <HouseholdProvider>
                 <App />
+                <Help />
               </HouseholdProvider>
             </AuthProvider>
           </HashRouter>

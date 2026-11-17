@@ -8,10 +8,10 @@ import Login from "./components/Login";
 import Board from "./components/Board";
 import Family from "./components/Family";
 import Preferences from "./components/Preferences";
-import Help from "./components/Help";
+import UserMenu from "./components/UserMenu";
 
 export default function App() {
-  const { session, loading, signOut } = useAuth();
+  const { session, loading } = useAuth();
   const { me } = useMe();
   const { households, active, activeId, setActiveId } = useActiveHousehold();
   const { t } = useI18n();
@@ -58,10 +58,7 @@ export default function App() {
           {me && me.role !== "admin" && active && (
             <span className="tag" title={t("activeFamily")}>{active.name}</span>
           )}
-          {me && <span>{me.emoji} {me.name}</span>}
-          <Preferences />
-          <Help />
-          <button className="btn" onClick={signOut}>{t("signOut")}</button>
+          {me && <UserMenu member={me} />}
         </div>
       </header>
       <Routes>

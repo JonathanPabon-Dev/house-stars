@@ -32,6 +32,28 @@ h2{margin:0 0 10px;font-size:19px}
 .prefs.end{justify-content:flex-end;margin-bottom:10px}
 .prefs .seg button{padding:5px 11px;font-size:13px}
 
+/* Menú de usuario: desplegable desde la pastilla del usuario */
+.umenu-wrap{position:relative}
+.userchip{display:flex;align-items:center;gap:8px;padding:4px 11px 4px 4px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;font-weight:800;line-height:1}
+.userchip:hover{background:var(--soft)}
+.uav{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-size:17px}
+.ucaret{font-size:10px;color:var(--muted);transition:transform .18s ease}
+.userchip[aria-expanded="true"] .ucaret{transform:rotate(180deg)}
+.umenu{position:absolute;right:0;top:calc(100% + 8px);z-index:45;min-width:236px;max-width:calc(100vw - 32px);padding:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.22)}
+.umenu-head{padding:8px 10px 10px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.umenu-head b{display:block;font-size:14px}
+.umenu-head small{color:var(--muted);font-size:12px;font-weight:700}
+.uitem{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:9px 10px;border:0;border-radius:10px;background:none;font-weight:700;text-align:left}
+.uitem:hover{background:var(--soft)}
+.uitem.danger{color:#D6457F}
+.uitem .seg{padding:2px}
+.uitem .seg button{padding:4px 10px;font-size:12px}
+.usep{height:1px;margin:6px 4px;background:var(--line)}
+
+/* Ayuda flotante: siempre abajo a la derecha, discreta hasta el hover */
+.help-fab{position:fixed;right:18px;bottom:18px;z-index:60;width:48px;height:48px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:20px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:.5;transition:opacity .18s ease,transform .18s ease}
+.help-fab:hover,.help-fab:focus-visible{opacity:1;transform:translateY(-2px)}
+
 /* Controles */
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between;margin-bottom:16px}
 .nav{display:flex;align-items:center;gap:8px}

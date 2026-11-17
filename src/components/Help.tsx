@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import { useI18n } from "../lib/i18n";
 
-// Botón de ayuda con las instrucciones para crear cuentas. Se usa en el acceso
-// (donde se crea la primera familia) y en la cabecera del tablero.
+// Botón de ayuda flotante, siempre visible abajo a la derecha (también en el
+// acceso). Se monta una sola vez en main.tsx; abre las instrucciones para crear
+// cuentas. En reposo tiene opacidad baja y se resalta al pasar el puntero.
 export default function Help() {
   const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
@@ -11,7 +12,7 @@ export default function Help() {
     <>
       <button
         type="button"
-        className="btn icon"
+        className="help-fab"
         aria-label={t("helpOpen")}
         aria-haspopup="dialog"
         title={t("helpOpen")}

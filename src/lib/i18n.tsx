@@ -15,6 +15,9 @@ const es = {
   language: "Idioma",
   themeToLight: "Cambiar a tema claro",
   themeToDark: "Cambiar a tema oscuro",
+  accountMenu: "Menú de la cuenta",
+  menuThemeLight: "Modo claro",
+  menuThemeDark: "Modo oscuro",
 
   signIn: "Entrar",
   createFamily: "Crear familia",
@@ -132,6 +135,9 @@ const en: Record<Key, string> = {
   language: "Language",
   themeToLight: "Switch to light theme",
   themeToDark: "Switch to dark theme",
+  accountMenu: "Account menu",
+  menuThemeLight: "Light mode",
+  menuThemeDark: "Dark mode",
 
   signIn: "Sign in",
   createFamily: "Create family",

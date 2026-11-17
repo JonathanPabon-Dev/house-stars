@@ -53,7 +53,7 @@ guarda su propio historial en `house_stars.schema_migrations`.
 
 | Función | Quién la llama | Qué hace |
 | --- | --- | --- |
-| `signup-household` | Pantalla de acceso, sin sesión | Crea una familia y su primera cuenta (adulto normal; admin solo si aún no existe el administrador único). |
+| `signup-household` | Pantalla de acceso, sin sesión | Crea una familia y su primera cuenta; quien la crea queda como `adult`. |
 | `join-household` | Pantalla de acceso, sin sesión | Une a una persona a una familia existente con su código; la cuenta queda como adulto normal. |
 | `create-member` | Solo el administrador de la aplicación | Crea la cuenta de otra persona: `adult` o `child`, nunca otro administrador. |
 
@@ -69,9 +69,30 @@ lo primero que hace es comprobar `raw_app_meta_data->>'app'`: si no es `house-st
 el usuario sin cambios. Esa metadata solo la escribe el servidor, así que los registros de las
 otras apps del proyecto compartido quedan intactos. La inserción en `members` es idempotente
 (`on conflict (user_id) do nothing`) y el trigger se llama `house_stars_on_auth_user_created`
-para no chocar con triggers de otras aplicaciones. El primer registro de la aplicación crea
-el administrador único; los siguientes registros crean adultos normales. Una cuenta creada
-por el administrador o por una unión con código recibe `adult` o `child` (nunca `admin`).
+para no chocar con triggers de otras aplicaciones. Un registro propio crea una familia y deja
+a esa persona como `adult`; una cuenta creada por el administrador o por una unión con código
+recibe `adult` o `child`. El rol `admin` **solo** lo asigna la service role mediante
+`app_metadata.role = 'admin'` (nunca el registro público) y esa cuenta queda sin familia.
+
+### Cuenta de administración
+
+El administrador es una cuenta de aplicación, aparte de las familias: `username = admin`,
+`name = ADMIN`, `household_id = null` y rol `admin`. Se aprovisiona una sola vez con la Auth
+Admin API y la service role key:
+
+```json
+{
+  "email": "admin@tablero.local",
+  "password": "<contraseña>",
+  "email_confirm": true,
+  "app_metadata": { "app": "house-stars", "role": "admin" },
+  "user_metadata": { "username": "admin", "display_name": "ADMIN" }
+}
+```
+
+El trigger crea la fila en `members` sin familia. La restricción
+`members_admin_no_household` impide que el admin pertenezca a una familia y que otro rol
+quede sin familia. Solo puede existir un admin en toda la aplicación.
 
 ## 2. Desarrollo local
 
@@ -105,16 +126,17 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 
 Hay tres roles en `house_stars.member_role`:
 
-- **`admin`**: superusuario único de toda la aplicación. Solo existe uno (lo crea el primer
-  registro de familia) y es el único que crea cuentas con usuario y contraseña para otras
-  personas. Ve y administra **todas las familias**: miembros, tareas, tutorías y códigos de
-  unión. En la cabecera elige la familia activa con un selector.
+- **`admin`**: cuenta de administración de toda la aplicación, sin familia. Solo existe una y
+  es la única que crea cuentas con usuario y contraseña para otras personas. Ve y administra
+  **todas las familias**: miembros, tareas, tutorías y códigos de unión. En la cabecera elige
+  la familia activa con un selector. No aparece en la lista de personas de ninguna familia.
 - **`adult`**: cuenta normal con acceso. Agrega personas sin cuenta (sus acogidos), se vincula
-  como tutor de los niños y administra sus propias tareas y las de sus acogidos.
+  como tutor de los niños y administra sus propias tareas y las de sus acogidos. Quien crea
+  una familia queda como `adult`.
 - **`child`**: cuenta normal, con o sin contraseña. Solo marca sus tareas.
 
 - El **usuario** se convierte en un email interno (`usuario@tablero.local`). No hay recuperación de contraseña por correo: el administrador crea la cuenta de nuevo o se gestiona desde el panel de Supabase.
-- **Crear familia** llama a `signup-household`: crea la familia y la cuenta, y luego inicia sesión. Quien la crea es `adult`, salvo que aún no exista el administrador único de la aplicación.
+- **Crear familia** llama a `signup-household`: crea la familia y la cuenta, y luego inicia sesión. Quien la crea queda siempre como `adult`; el administrador es una cuenta aparte de la aplicación.
 - **Unirse a una familia** llama a `join-household`: con el código corto de la familia se crea una cuenta normal (`adult`) en esa familia, sin crear otra familia. Cada familia tiene un código único de 8 caracteres, visible para el administrador y los adultos en Familia → Código para unirse.
 - Solo el administrador ve y usa **Crear cuenta con usuario y contraseña**. `create-member` valida el rol en el servidor: acepta `adult` o `child`, nunca `admin`, y crea la cuenta en la familia activa que el administrador elija.
 - El administrador y los adultos agregan personas sin cuenta, que quedan como `child`. El adulto se vincula como tutor desde la tabla de Tutores; el administrador puede editar cualquier vínculo de cualquier familia.

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
-import { useAddMember, useCreateAccount, useGuardians, useMe, useToggleGuardian } from "../lib/data";
+import { useAddMember, useCreateAccount, useGuardians, useJoinCode, useMe, useToggleGuardian } from "../lib/data";
 import { USERNAME_RE } from "../lib/auth";
 import { errText, useI18n } from "../lib/i18n";
 
@@ -26,6 +26,8 @@ export default function Family() {
   // Administrador y adultos pueden agregar personas sin cuenta (acogidos).
   const canAddWard = me?.role === "admin" || me?.role === "adult";
   const adults = members.filter((m) => m.role !== "child");
+  const joinCode = useJoinCode(!!canAddWard).data;
+  const [copied, setCopied] = useState(false);
 
   // Persona sin cuenta
   const [pName, setPName] = useState("");
@@ -74,6 +76,17 @@ export default function Family() {
     }
   }
 
+  async function copyJoinCode() {
+    if (!joinCode) return;
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* el navegador puede bloquear el portapapeles; el código queda visible */
+    }
+  }
+
   return (
     <div className="family">
       <section className="card">
@@ -89,6 +102,19 @@ export default function Family() {
           ))}
         </ul>
       </section>
+
+      {canAddWard && joinCode && (
+        <section className="card">
+          <h2>{t("familyCodeTitle")}</h2>
+          <p className="muted">{t("familyCodeHelp")}</p>
+          <div className="row">
+            <span className="tag" style={{ fontSize: 18, letterSpacing: 2 }}>{joinCode}</span>
+            <button type="button" className="btn" onClick={copyJoinCode}>
+              {copied ? t("copied") : t("copyCode")}
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <h2>{t("guardians")}</h2>

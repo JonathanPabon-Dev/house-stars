@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       .select("household_id, role")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!me || me.role !== "admin") return fail("not_admin", "Only the family administrator can create accounts", 403);
+    if (!me || me.role !== "admin") return fail("not_admin", "Only the application administrator can create accounts", 403);
 
     // 2) Validar datos. El rol solo puede ser adult o child: nunca se crea otro admin.
     const b = await req.json();

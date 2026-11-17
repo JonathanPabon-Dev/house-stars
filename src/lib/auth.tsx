@@ -2,12 +2,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "./supabase";
-import { errText, useI18n } from "./i18n";
+import { errText, useI18n, type Key } from "./i18n";
 
 // Supabase Auth usa email. El "usuario" se convierte en un email interno.
 export const EMAIL_DOMAIN = "tablero.local";
 export const toEmail = (u: string) => `${u.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
 export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+export const JOIN_CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/;
 
 interface SignUpInput {
   username: string;
@@ -16,11 +17,19 @@ interface SignUpInput {
   household: string;
 }
 
+interface JoinInput {
+  code: string;
+  username: string;
+  password: string;
+  name: string;
+}
+
 interface Ctx {
   session: Session | null;
   loading: boolean;
   signIn: (username: string, password: string) => Promise<string | null>;
   signUp: (v: SignUpInput) => Promise<string | null>;
+  join: (v: JoinInput) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
 
@@ -47,6 +56,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error.message.toLowerCase().includes("invalid") ? t("errBadCreds") : error.message;
   };
 
+  // La Edge Function responde { error, code }: se conserva el code para traducirlo.
+  async function edgeError(error: unknown, fallback: Key): Promise<string> {
+    let msg = (error as Error).message;
+    let code: string | undefined;
+    try {
+      const j = await (error as unknown as { context: Response }).context.json();
+      if (j?.error) msg = j.error;
+      code = j?.code;
+    } catch {
+      /* se usa el mensaje genérico */
+    }
+    return errText(t, Object.assign(new Error(msg), { code }), fallback);
+  }
+
+  async function signInAfter(username: string, password: string): Promise<string | null> {
+    const { error } = await supabase.auth.signInWithPassword({ email: toEmail(username), password });
+    return error ? error.message : null;
+  }
+
   // El proyecto de Supabase es compartido: la cuenta se crea en el servidor con
   // email_confirm: true, sin depender de los ajustes globales de Auth.
   const signUp: Ctx["signUp"] = async (v) => {
@@ -63,25 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         household: v.household.trim(),
       },
     });
-    if (error) {
-      // La Edge Function responde { error, code }: se conserva el code para traducirlo.
-      let msg = error.message;
-      let code: string | undefined;
-      try {
-        const j = await (error as unknown as { context: Response }).context.json();
-        if (j?.error) msg = j.error;
-        code = j?.code;
-      } catch {
-        /* se usa el mensaje genérico */
-      }
-      return errText(t, Object.assign(new Error(msg), { code }), "errCreate");
-    }
+    if (error) return edgeError(error, "errCreate");
+    return signInAfter(username, v.password);
+  };
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: toEmail(username),
-      password: v.password,
+  // Unirse a una familia existente con su código: la cuenta queda como adulto normal.
+  const join: Ctx["join"] = async (v) => {
+    const code = v.code.trim().toUpperCase();
+    const username = v.username.trim().toLowerCase();
+    if (!JOIN_CODE_RE.test(code)) return t("errCodeFormat");
+    if (!USERNAME_RE.test(username)) return t("errUsernameFormat");
+    if (v.password.length < 6) return t("errPasswordShort");
+    if (!v.name.trim()) return t("errNameRequired");
+
+    const { error } = await supabase.functions.invoke("join-household", {
+      body: { code, username, password: v.password, name: v.name.trim() },
     });
-    return signInError ? signInError.message : null;
+    if (error) return edgeError(error, "errJoin");
+    return signInAfter(username, v.password);
   };
 
   const signOut = async () => {
@@ -89,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     qc.clear();
   };
 
-  return <AuthCtx.Provider value={{ session, loading, signIn, signUp, signOut }}>{children}</AuthCtx.Provider>;
+  return <AuthCtx.Provider value={{ session, loading, signIn, signUp, join, signOut }}>{children}</AuthCtx.Provider>;
 }
 
 export function useAuth() {

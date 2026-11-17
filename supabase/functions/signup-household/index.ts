@@ -1,7 +1,8 @@
-// House Stars — Edge Function: crea la primera cuenta de una familia desde el login.
+// House Stars — Edge Function: crea una familia y su primera cuenta desde el login.
 // Vive en el servidor para crear el usuario con email_confirm: true, sin depender de
 // los ajustes globales de Auth (el proyecto de Supabase es compartido).
-// Despliegue: supabase functions deploy signup-household
+// Quien crea la familia es adulto normal, salvo que aún no exista el administrador
+// único de la aplicación (el primero). Despliegue: supabase functions deploy signup-household
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const EMAIL_DOMAIN = "tablero.local"; // debe coincidir con src/lib/auth.tsx

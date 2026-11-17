@@ -44,6 +44,20 @@ export function useGuardians() {
   });
 }
 
+// Código para que otros miembros se unan a esta familia. La base lo entrega solo
+// a admin/adultos; un niño recibe null.
+export function useJoinCode(enabled: boolean) {
+  return useQuery({
+    queryKey: ["join-code"],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("household_join_code");
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+  });
+}
+
 export function useCompletions(from: string, to: string) {
   return useQuery({
     queryKey: ["completions", from, to],

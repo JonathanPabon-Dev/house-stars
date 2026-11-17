@@ -55,10 +55,39 @@ if (!files.length) {
   process.exit(0);
 }
 
+const versionOf = (file) => file.slice(0, file.indexOf("_"));
+
+// El historial vive en la base. Si aún no existe la tabla, todo está pendiente.
+function appliedVersions() {
+  try {
+    return new Set(
+      query(`select version from ${SCHEMA}.schema_migrations order by version`).map((r) => r.version),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function pendingMigrations() {
+  const applied = appliedVersions();
+  return files.filter((f) => !applied.has(versionOf(f)));
+}
+
+// El dry run valida SOLO las migraciones pendientes: las ya aplicadas no se pueden
+// ejecutar otra vez (p. ej. los `create type` fallarían con "already exists").
 if (dryRun) {
-  const sql = ["begin;", ...files.map((f) => readFileSync(join(MIGRATIONS_DIR, f), "utf8")), "rollback;"].join("\n");
+  const pending = pendingMigrations();
+  if (!pending.length) {
+    console.log("Dry run OK: no hay migraciones pendientes.");
+    process.exit(0);
+  }
+  const sql = [
+    "begin;",
+    ...pending.map((f) => readFileSync(join(MIGRATIONS_DIR, f), "utf8")),
+    "rollback;",
+  ].join("\n");
   runSql(sql);
-  console.log(`Dry run OK: ${files.length} migración(es) ejecutadas y revertidas.`);
+  console.log(`Dry run OK: ${pending.length} migración(es) pendientes, revertidas.`);
   process.exit(0);
 }
 
@@ -71,17 +100,11 @@ create table if not exists ${SCHEMA}.schema_migrations (
 );
 `);
 
-const applied = new Set(
-  query(`select version from ${SCHEMA}.schema_migrations order by version`).map((r) => r.version),
-);
+const pending = pendingMigrations();
 
 let count = 0;
-for (const file of files) {
-  const version = file.slice(0, file.indexOf("_"));
-  if (applied.has(version)) {
-    console.log(`skip ${file}`);
-    continue;
-  }
+for (const file of pending) {
+  const version = versionOf(file);
   const name = file.slice(file.indexOf("_") + 1, -4).replace(/'/g, "''");
   const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
   runSql(

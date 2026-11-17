@@ -72,7 +72,7 @@ export function useMe() {
 export function makePerms(me: Member | null, guardians: Guardian[]) {
   const canManage = (memberId: string) =>
     !!me &&
-    me.role === "admin" &&
+    (me.role === "admin" || me.role === "adult") &&
     (me.id === memberId || guardians.some((g) => g.guardian_id === me.id && g.child_id === memberId));
   const canComplete = (memberId: string) => !!me && (me.id === memberId || canManage(memberId));
   return { canManage, canComplete };
@@ -163,7 +163,7 @@ export function useAddMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (m: { household_id: string; name: string; emoji: string; color: string }) => {
-      const { error } = await supabase.from("members").insert({ ...m, role: "member" });
+      const { error } = await supabase.from("members").insert({ ...m, role: "child" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["members"] }),
@@ -173,7 +173,7 @@ export function useAddMember() {
 export function useCreateAccount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { username: string; password: string; name: string; role: "admin" | "member"; emoji: string; color: string }) => {
+    mutationFn: async (body: { username: string; password: string; name: string; role: "adult" | "child"; emoji: string; color: string }) => {
       const { data, error } = await supabase.functions.invoke("create-member", { body });
       if (error) {
         let msg = error.message;

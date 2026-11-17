@@ -1,6 +1,7 @@
-// House Stars — Edge Function: un adulto crea la cuenta (usuario + contraseña) de otra persona de su familia.
-// Necesita la service role key, por eso NO puede hacerse desde el frontend (GitHub Pages).
-// Despliegue: supabase functions deploy create-member
+// House Stars — Edge Function: el administrador de la familia crea la cuenta
+// (usuario + contraseña) de otra persona. Los demás adultos solo agregan acogidos
+// sin cuenta desde la app. Necesita la service role key, por eso NO puede hacerse
+// desde el frontend (GitHub Pages). Despliegue: supabase functions deploy create-member
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const EMAIL_DOMAIN = "tablero.local"; // debe coincidir con src/lib/auth.tsx
@@ -21,7 +22,8 @@ Deno.serve(async (req) => {
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // 1) Quién llama: debe ser un adulto (admin) de una familia
+    // 1) Quién llama: debe ser el administrador de la familia. Un adulto normal
+    //    no crea cuentas con contraseña, solo acogidos sin cuenta (lo impone RLS).
     const userClient = createClient(url, anon, {
       db: { schema: DB_SCHEMA },
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
@@ -33,16 +35,17 @@ Deno.serve(async (req) => {
       .select("household_id, role")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!me || me.role !== "admin") return fail("not_admin", "Only adults can create accounts", 403);
+    if (!me || me.role !== "admin") return fail("not_admin", "Only the family administrator can create accounts", 403);
 
-    // 2) Validar datos
+    // 2) Validar datos. El rol solo puede ser adult o child: nunca se crea otro admin.
     const b = await req.json();
     const username = String(b.username ?? "").trim().toLowerCase();
     const password = String(b.password ?? "");
     const name = String(b.name ?? "").trim();
-    const role = b.role === "admin" ? "admin" : "member";
+    const role = b.role === "adult" || b.role === "child" ? b.role : null;
     const emoji = String(b.emoji ?? "").trim().slice(0, 8) || "🙂";
     const color = /^#[0-9A-Fa-f]{6}$/.test(String(b.color ?? "")) ? String(b.color) : "#3D6FD8";
+    if (!role) return fail("bad_role", "Invalid role", 400);
     if (!/^[a-z0-9_]{3,20}$/.test(username)) return fail("bad_username", "Invalid username", 400);
     if (password.length < 6) return fail("short_password", "Password must be at least 6 characters", 400);
     if (!name) return fail("no_name", "Name is required", 400);

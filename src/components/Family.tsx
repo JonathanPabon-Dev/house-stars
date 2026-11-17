@@ -23,7 +23,9 @@ export default function Family() {
   const createAccount = useCreateAccount();
   const toggleG = useToggleGuardian();
   const isAdmin = me?.role === "admin";
-  const adults = members.filter((m) => m.role === "admin");
+  // Administrador y adultos pueden agregar personas sin cuenta (acogidos).
+  const canAddWard = me?.role === "admin" || me?.role === "adult";
+  const adults = members.filter((m) => m.role !== "child");
 
   // Persona sin cuenta
   const [pName, setPName] = useState("");
@@ -35,7 +37,7 @@ export default function Family() {
   const [aName, setAName] = useState("");
   const [aUser, setAUser] = useState("");
   const [aPass, setAPass] = useState("");
-  const [aRole, setARole] = useState<"admin" | "member">("member");
+  const [aRole, setARole] = useState<"adult" | "child">("adult");
   const [aEmoji, setAEmoji] = useState("🙂");
   const [aColor, setAColor] = useState(COLORS[1]);
   const [aErr, setAErr] = useState("");
@@ -81,7 +83,7 @@ export default function Family() {
             <li key={m.id} style={{ "--c": m.color } as CSSProperties}>
               <span className="av" aria-hidden="true">{m.emoji}</span>
               <span className="mn">{m.name}</span>
-              <span className="tag">{m.role === "admin" ? t("adult") : t("child")}</span>
+              <span className="tag">{m.role === "admin" ? t("admin") : m.role === "adult" ? t("adult") : t("child")}</span>
               <span className="muted">{m.username ? t("usernameIs", { u: m.username }) : t("noAccount")}</span>
             </li>
           ))}
@@ -108,12 +110,16 @@ export default function Family() {
                   {adults.map((a) => {
                     if (a.id === m.id) return <td key={a.id} className="muted">—</td>;
                     const linked = guardians.some((g) => g.guardian_id === a.id && g.child_id === m.id);
+                    // El administrador administra todos los vínculos; un adulto solo
+                    // puede vincularse a sí mismo con un niño de la familia.
+                    const canToggle =
+                      isAdmin || (me?.role === "adult" && me.id === a.id && m.role === "child");
                     return (
                       <td key={a.id}>
                         <input
                           type="checkbox"
                           checked={linked}
-                          disabled={!isAdmin || toggleG.isPending}
+                          disabled={!canToggle || toggleG.isPending}
                           aria-label={t("manages", { a: a.name, m: m.name })}
                           onChange={() => me && toggleG.mutate({ household_id: me.household_id, guardian_id: a.id, child_id: m.id, linked })}
                         />
@@ -128,47 +134,47 @@ export default function Family() {
         {toggleG.error && <div className="err" role="alert">{(toggleG.error as Error).message}</div>}
       </section>
 
-      {isAdmin && (
-        <>
-          <section className="card">
-            <h2>{t("addPerson")}</h2>
-            <p className="muted">{t("addPersonHelp")}</p>
-            <form onSubmit={onAddMember}>
-              <div className="row">
-                <div><label className="f" htmlFor="pe">{t("icon")}</label><input id="pe" className="inp" value={pEmoji} maxLength={4} onChange={(e) => setPEmoji(e.target.value)} /></div>
-                <div><label className="f" htmlFor="pn">{t("name")}</label><input id="pn" className="inp" value={pName} maxLength={40} onChange={(e) => setPName(e.target.value)} /></div>
-              </div>
-              <label className="f">{t("color")}</label>
-              <ColorPick value={pColor} onChange={setPColor} />
-              <div className="err" role="alert">{pErr}</div>
-              <button className="btn primary" disabled={addMember.isPending}>{t("add")}</button>
-            </form>
-          </section>
+      {canAddWard && (
+        <section className="card">
+          <h2>{t("addPerson")}</h2>
+          <p className="muted">{t("addPersonHelp")}</p>
+          <form onSubmit={onAddMember}>
+            <div className="row">
+              <div><label className="f" htmlFor="pe">{t("icon")}</label><input id="pe" className="inp" value={pEmoji} maxLength={4} onChange={(e) => setPEmoji(e.target.value)} /></div>
+              <div><label className="f" htmlFor="pn">{t("name")}</label><input id="pn" className="inp" value={pName} maxLength={40} onChange={(e) => setPName(e.target.value)} /></div>
+            </div>
+            <label className="f">{t("color")}</label>
+            <ColorPick value={pColor} onChange={setPColor} />
+            <div className="err" role="alert">{pErr}</div>
+            <button className="btn primary" disabled={addMember.isPending}>{t("add")}</button>
+          </form>
+        </section>
+      )}
 
-          <section className="card">
-            <h2>{t("createAccount")}</h2>
-            <form onSubmit={onCreateAccount}>
-              <div className="row">
-                <div><label className="f" htmlFor="ae">{t("icon")}</label><input id="ae" className="inp" value={aEmoji} maxLength={4} onChange={(e) => setAEmoji(e.target.value)} /></div>
-                <div><label className="f" htmlFor="an">{t("name")}</label><input id="an" className="inp" value={aName} maxLength={40} onChange={(e) => setAName(e.target.value)} /></div>
-              </div>
-              <label className="f" htmlFor="au">{t("username")}</label>
-              <input id="au" className="inp" value={aUser} autoCapitalize="none" autoComplete="off" onChange={(e) => setAUser(e.target.value)} />
-              <label className="f" htmlFor="ap">{t("password")}</label>
-              <input id="ap" className="inp" type="password" value={aPass} autoComplete="new-password" onChange={(e) => setAPass(e.target.value)} />
-              <label className="f" htmlFor="ar">{t("type")}</label>
-              <select id="ar" className="inp" value={aRole} onChange={(e) => setARole(e.target.value as "admin" | "member")}>
-                <option value="member">{t("typeChild")}</option>
-                <option value="admin">{t("typeAdult")}</option>
-              </select>
-              <label className="f">{t("color")}</label>
-              <ColorPick value={aColor} onChange={setAColor} />
-              <div className="err" role="alert">{aErr}</div>
-              {aOk && <div className="ok" role="status">{aOk}</div>}
-              <button className="btn primary" disabled={createAccount.isPending}>{t("createAccountBtn")}</button>
-            </form>
-          </section>
-        </>
+      {isAdmin && (
+        <section className="card">
+          <h2>{t("createAccount")}</h2>
+          <form onSubmit={onCreateAccount}>
+            <div className="row">
+              <div><label className="f" htmlFor="ae">{t("icon")}</label><input id="ae" className="inp" value={aEmoji} maxLength={4} onChange={(e) => setAEmoji(e.target.value)} /></div>
+              <div><label className="f" htmlFor="an">{t("name")}</label><input id="an" className="inp" value={aName} maxLength={40} onChange={(e) => setAName(e.target.value)} /></div>
+            </div>
+            <label className="f" htmlFor="au">{t("username")}</label>
+            <input id="au" className="inp" value={aUser} autoCapitalize="none" autoComplete="off" onChange={(e) => setAUser(e.target.value)} />
+            <label className="f" htmlFor="ap">{t("password")}</label>
+            <input id="ap" className="inp" type="password" value={aPass} autoComplete="new-password" onChange={(e) => setAPass(e.target.value)} />
+            <label className="f" htmlFor="ar">{t("type")}</label>
+            <select id="ar" className="inp" value={aRole} onChange={(e) => setARole(e.target.value as "adult" | "child")}>
+              <option value="adult">{t("typeAdult")}</option>
+              <option value="child">{t("typeChild")}</option>
+            </select>
+            <label className="f">{t("color")}</label>
+            <ColorPick value={aColor} onChange={setAColor} />
+            <div className="err" role="alert">{aErr}</div>
+            {aOk && <div className="ok" role="status">{aOk}</div>}
+            <button className="btn primary" disabled={createAccount.isPending}>{t("createAccountBtn")}</button>
+          </form>
+        </section>
       )}
     </div>
   );

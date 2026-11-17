@@ -21,7 +21,7 @@ Stack: Vite + React + TypeScript (gestor de paquetes: pnpm), Supabase (Postgres,
 pnpm add -g supabase         # o usa: pnpm dlx supabase <comando>
 supabase login
 supabase link --project-ref TU_PROJECT_REF
-pnpm db:apply:dry            # valida las migraciones en una transacción y revierte
+pnpm db:apply:dry            # valida las migraciones pendientes en una transacción y revierte
 pnpm db:apply                # aplica solo las pendientes
 ```
 
@@ -54,7 +54,7 @@ guarda su propio historial en `house_stars.schema_migrations`.
 | Función | Quién la llama | Qué hace |
 | --- | --- | --- |
 | `signup-household` | Pantalla de acceso, sin sesión | Crea la primera cuenta y su familia (botón **Crear familia**). |
-| `create-member` | Un adulto autenticado | Crea la cuenta de otra persona de su familia. |
+| `create-member` | Solo el administrador de la familia | Crea la cuenta de otra persona: `adult` o `child`, nunca otro administrador. |
 
 Ambas usan la service role key y crean el usuario con `email_confirm: true`, sin enviar
 correo real (el email es interno: `usuario@tablero.local`).
@@ -68,7 +68,9 @@ lo primero que hace es comprobar `raw_app_meta_data->>'app'`: si no es `house-st
 el usuario sin cambios. Esa metadata solo la escribe el servidor, así que los registros de las
 otras apps del proyecto compartido quedan intactos. La inserción en `members` es idempotente
 (`on conflict (user_id) do nothing`) y el trigger se llama `house_stars_on_auth_user_created`
-para no chocar con triggers de otras aplicaciones.
+para no chocar con triggers de otras aplicaciones. Un registro propio crea la familia y queda
+como `admin`; una cuenta creada por el administrador recibe `adult` o `child` (nunca otro
+`admin`, para evitar escaladas de privilegios).
 
 ## 2. Desarrollo local
 
@@ -100,12 +102,19 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 
 ## Cómo funcionan el login y los permisos
 
-- El **usuario** se convierte en un email interno (`usuario@tablero.local`). No hay recuperación de contraseña por correo: un adulto crea la cuenta de nuevo o se gestiona desde el panel de Supabase.
-- **Crear familia** llama a `signup-household`: la cuenta se crea en el servidor y luego la app inicia sesión con usuario y contraseña.
-- Un adulto crea cuentas de otras personas con `create-member` (Familia → Crear cuenta).
-- Quien usa **Crear familia** queda como adulto (`admin`) de una familia nueva.
-- Los adultos crean personas y vínculos de tutoría (Familia → Tutores).
-- Cada adulto administra **sus propias tareas y las de sus hijos** (tutorías muchos a muchos). Cada persona marca solo sus tareas; un adulto también las de sus hijos.
+Hay tres roles en `house_stars.member_role`:
+
+- **`admin`**: dueño de la familia. Es el único que crea cuentas con usuario y contraseña
+  (Familia → Crear cuenta) y puede administrar todos los vínculos de tutoría.
+- **`adult`**: adulto con cuenta. Agrega personas sin cuenta (sus acogidos), se vincula como
+  tutor de los niños y administra sus propias tareas y las de sus acogidos.
+- **`child`**: solo marca sus tareas. Puede tener cuenta o no; si no la tiene, un tutor las marca.
+
+- El **usuario** se convierte en un email interno (`usuario@tablero.local`). No hay recuperación de contraseña por correo: el administrador crea la cuenta de nuevo o se gestiona desde el panel de Supabase.
+- **Crear familia** llama a `signup-household`: la cuenta se crea en el servidor y luego la app inicia sesión con usuario y contraseña. Quien la crea queda como `admin`.
+- Solo el administrador ve y usa **Crear cuenta con usuario y contraseña**. `create-member` valida el rol en el servidor: acepta `adult` o `child`, nunca `admin`.
+- El administrador y los adultos agregan personas sin cuenta, que quedan como `child`. El adulto se vincula como tutor desde la tabla de Tutores; el administrador puede editar cualquier vínculo.
+- Cada adulto administra **sus propias tareas y las de sus acogidos** (tutorías muchos a muchos). Cada persona marca solo sus tareas; un adulto también las de sus acogidos.
 - La seguridad real está en las políticas RLS (`supabase/migrations`), todas en `house_stars`. La interfaz solo las refleja.
 - La anon key es pública por diseño. Nunca pongas la service role key en el frontend ni en las variables `VITE_*`.
 
@@ -114,7 +123,7 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 ```
 src/lib/          supabase (cliente con esquema house_stars), auth (usuario→email), datos (React Query), fechas, i18n, tema
 src/components/   Login, Board (día/semana/mes), Views, TaskDialog, Family, Preferences
-supabase/migrations/                  house_stars: esquema, trigger de registro, RLS, tutorías
+supabase/migrations/                  house_stars: esquema, trigger de registro, RLS, tutorías y tres roles
 supabase/functions/create-member/     crea cuentas de la familia (service role)
 supabase/functions/signup-household/  crea la primera cuenta y su familia (service role)
 ```

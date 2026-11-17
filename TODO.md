@@ -10,7 +10,8 @@ Estado base: `pnpm typecheck` pasa; no hay `TODO`/`FIXME` en `src` ni `supabase`
 - [x] **Configurar GitHub Pages.** Publicado con GitHub Actions en https://jonathanpabon-dev.github.io/house-stars/.
 - [x] **Crear variables del repositorio.** `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` configuradas; el sitio ya compila con la URL del proyecto `mwdnptylqsmzadfweqgy`.
 - [x] **Crear `.env.local` en local** (ignorado por git) con las mismas variables para `pnpm dev`.
-- [x] **Desplegar Supabase (proyecto compartido).** Esquema `house_stars` aplicado con `pnpm db:apply` (4 migraciones) y expuesto en la API; `create-member` y `signup-household` desplegadas con `--use-api`. Verificado de extremo a extremo: alta de familia, login, creación de miembros y aislamiento frente a usuarios de otras apps.
+- [x] **Desplegar Supabase (proyecto compartido).** Esquema `house_stars` aplicado con `pnpm db:apply` (5 migraciones) y expuesto en la API; `create-member` y `signup-household` desplegadas con `--use-api`. Verificado de extremo a extremo: alta de familia, login, creación de miembros y aislamiento frente a usuarios de otras apps.
+- [x] **Modelo de tres roles.** `admin` (dueño: único que crea cuentas), `adult` (agrega acogidos y administra sus tareas) y `child` (solo marca las suyas). Migración `20261107000500_three_roles.sql`; la UI muestra «Crear cuenta» solo al administrador y la Edge Function rechaza cualquier rol distinto de `adult`/`child`.
 - **No cambiar los ajustes globales de Auth.** El proyecto es compartido con otras apps: deja "Confirm email" como está. Las cuentas se crean con `email_confirm: true` desde las Edge Functions.
 - [x] **Publicar el frontend.** Push a `main` desplegado en GitHub Pages; el bundle servido incluye el esquema `house_stars` y `signup-household`.
 

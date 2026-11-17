@@ -1,5 +1,10 @@
 export type Role = "admin" | "adult" | "child";
 
+export interface Household {
+  id: string;
+  name: string;
+}
+
 export interface Member {
   id: string;
   household_id: string;

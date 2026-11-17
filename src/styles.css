@@ -26,6 +26,7 @@ h2{margin:0 0 10px;font-size:19px}
 .links a{padding:6px 14px;border-radius:999px;font-weight:700;color:var(--muted);text-decoration:none}
 .links a.active{background:var(--soft);color:var(--ink)}
 .who{display:flex;align-items:center;gap:10px;font-weight:700;flex-wrap:wrap}
+.hhsel{max-width:190px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700}
 .brand small{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:2px}
 .prefs{display:flex;align-items:center;gap:8px}
 .prefs.end{justify-content:flex-end;margin-bottom:10px}

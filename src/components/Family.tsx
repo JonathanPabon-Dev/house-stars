@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
 import { useAddMember, useCreateAccount, useGuardians, useJoinCode, useMe, useToggleGuardian } from "../lib/data";
+import { useActiveHousehold } from "../lib/household";
 import { USERNAME_RE } from "../lib/auth";
 import { errText, useI18n } from "../lib/i18n";
 
@@ -17,8 +18,11 @@ function ColorPick({ value, onChange }: { value: string; onChange: (c: string) =
 
 export default function Family() {
   const { t } = useI18n();
-  const { me, members } = useMe();
-  const guardians = useGuardians().data ?? [];
+  const { me, members: allMembers } = useMe();
+  const { activeId, active } = useActiveHousehold();
+  // El administrador ve todas las familias: la página muestra solo la activa.
+  const members = allMembers.filter((m) => m.household_id === activeId);
+  const guardians = (useGuardians().data ?? []).filter((g) => g.household_id === activeId);
   const addMember = useAddMember();
   const createAccount = useCreateAccount();
   const toggleG = useToggleGuardian();
@@ -26,7 +30,7 @@ export default function Family() {
   // Administrador y adultos pueden agregar personas sin cuenta (acogidos).
   const canAddWard = me?.role === "admin" || me?.role === "adult";
   const adults = members.filter((m) => m.role !== "child");
-  const joinCode = useJoinCode(!!canAddWard).data;
+  const joinCode = useJoinCode(!!canAddWard && !!activeId, activeId || null).data;
   const [copied, setCopied] = useState(false);
 
   // Persona sin cuenta
@@ -48,9 +52,9 @@ export default function Family() {
   async function onAddMember(e: FormEvent) {
     e.preventDefault();
     setPErr("");
-    if (!me || !pName.trim()) return setPErr(t("errNameRequired"));
+    if (!activeId || !pName.trim()) return setPErr(t("errNameRequired"));
     try {
-      await addMember.mutateAsync({ household_id: me.household_id, name: pName.trim(), emoji: pEmoji.trim() || "🙂", color: pColor });
+      await addMember.mutateAsync({ household_id: activeId, name: pName.trim(), emoji: pEmoji.trim() || "🙂", color: pColor });
       setPName("");
     } catch (err) {
       setPErr(errText(t, err, "errAdd"));
@@ -62,11 +66,12 @@ export default function Family() {
     setAErr("");
     setAOk("");
     const username = aUser.trim().toLowerCase();
+    if (!activeId) return setAErr(t("errCreate"));
     if (!aName.trim()) return setAErr(t("errNameRequired"));
     if (!USERNAME_RE.test(username)) return setAErr(t("errUsernameFormat"));
     if (aPass.length < 6) return setAErr(t("errPasswordShort"));
     try {
-      await createAccount.mutateAsync({ username, password: aPass, name: aName.trim(), role: aRole, emoji: aEmoji.trim() || "🙂", color: aColor });
+      await createAccount.mutateAsync({ household_id: activeId, username, password: aPass, name: aName.trim(), role: aRole, emoji: aEmoji.trim() || "🙂", color: aColor });
       setAOk(t("accountCreated", { u: username }));
       setAName("");
       setAUser("");
@@ -147,7 +152,7 @@ export default function Family() {
                           checked={linked}
                           disabled={!canToggle || toggleG.isPending}
                           aria-label={t("manages", { a: a.name, m: m.name })}
-                          onChange={() => me && toggleG.mutate({ household_id: me.household_id, guardian_id: a.id, child_id: m.id, linked })}
+                          onChange={() => activeId && toggleG.mutate({ household_id: activeId, guardian_id: a.id, child_id: m.id, linked })}
                         />
                       </td>
                     );

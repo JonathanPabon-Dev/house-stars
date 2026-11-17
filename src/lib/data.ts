@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DB_SCHEMA, supabase } from "./supabase";
 import { useAuth } from "./auth";
-import type { Completion, Guardian, Member, Task } from "./types";
+import type { Completion, Guardian, Household, Member, Task } from "./types";
 
 // ---------- Lecturas ----------
 export function useMembers() {
@@ -44,14 +44,29 @@ export function useGuardians() {
   });
 }
 
-// Código para que otros miembros se unan a esta familia. La base lo entrega solo
-// a admin/adultos; un niño recibe null.
-export function useJoinCode(enabled: boolean) {
+// Las familias visibles: el administrador ve todas; el resto, solo la suya.
+export function useHouseholds() {
+  const { session } = useAuth();
   return useQuery({
-    queryKey: ["join-code"],
-    enabled,
+    queryKey: ["households"],
+    enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("household_join_code");
+      const { data, error } = await supabase.from("households").select("id, name").order("name");
+      if (error) throw error;
+      return data as Household[];
+    },
+  });
+}
+
+// Código para que otros miembros se unan a esta familia. La base lo entrega solo
+// a admin/adultos; un niño recibe null. El administrador puede consultar el de
+// cualquier familia; un adulto, solo el de la suya.
+export function useJoinCode(enabled: boolean, householdId: string | null) {
+  return useQuery({
+    queryKey: ["join-code", householdId],
+    enabled: enabled && !!householdId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("household_join_code", { p_household: householdId });
       if (error) throw error;
       return (data as string | null) ?? null;
     },
@@ -187,7 +202,7 @@ export function useAddMember() {
 export function useCreateAccount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { username: string; password: string; name: string; role: "adult" | "child"; emoji: string; color: string }) => {
+    mutationFn: async (body: { household_id: string; username: string; password: string; name: string; role: "adult" | "child"; emoji: string; color: string }) => {
       const { data, error } = await supabase.functions.invoke("create-member", { body });
       if (error) {
         let msg = error.message;

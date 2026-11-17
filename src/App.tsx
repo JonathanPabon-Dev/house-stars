@@ -2,6 +2,7 @@ import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import { configured } from "./lib/supabase";
 import { useMe } from "./lib/data";
+import { useActiveHousehold } from "./lib/household";
 import { useI18n } from "./lib/i18n";
 import Login from "./components/Login";
 import Board from "./components/Board";
@@ -12,6 +13,7 @@ import Help from "./components/Help";
 export default function App() {
   const { session, loading, signOut } = useAuth();
   const { me } = useMe();
+  const { households, activeId, setActiveId } = useActiveHousehold();
   const { t } = useI18n();
 
   if (!configured)
@@ -37,6 +39,19 @@ export default function App() {
           <NavLink to="/familia">{t("navFamily")}</NavLink>
         </nav>
         <div className="who">
+          {me?.role === "admin" && households.length > 1 && (
+            <select
+              className="hhsel"
+              aria-label={t("activeFamily")}
+              title={t("activeFamily")}
+              value={activeId}
+              onChange={(e) => setActiveId(e.target.value)}
+            >
+              {households.map((h) => (
+                <option key={h.id} value={h.id}>{h.name}</option>
+              ))}
+            </select>
+          )}
           {me && <span>{me.emoji} {me.name}</span>}
           <Preferences />
           <Help />

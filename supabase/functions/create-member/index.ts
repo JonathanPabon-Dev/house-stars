@@ -1,7 +1,8 @@
-// House Stars — Edge Function: el administrador de la familia crea la cuenta
-// (usuario + contraseña) de otra persona. Los demás adultos solo agregan acogidos
-// sin cuenta desde la app. Necesita la service role key, por eso NO puede hacerse
-// desde el frontend (GitHub Pages). Despliegue: supabase functions deploy create-member
+// House Stars — Edge Function: el administrador único de la aplicación crea la
+// cuenta (usuario + contraseña) de otra persona, en la familia que elija. Los
+// demás adultos solo agregan acogidos sin cuenta desde la app. Necesita la
+// service role key, por eso NO puede hacerse desde el frontend (GitHub Pages).
+// Despliegue: supabase functions deploy create-member
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const EMAIL_DOMAIN = "tablero.local"; // debe coincidir con src/lib/auth.tsx
@@ -45,12 +46,25 @@ Deno.serve(async (req) => {
     const role = b.role === "adult" || b.role === "child" ? b.role : null;
     const emoji = String(b.emoji ?? "").trim().slice(0, 8) || "🙂";
     const color = /^#[0-9A-Fa-f]{6}$/.test(String(b.color ?? "")) ? String(b.color) : "#3D6FD8";
+    // Familia destino: el administrador puede crear la cuenta en cualquiera de
+    // las familias que ve en el selector. Si no la envía, usa la suya.
+    const requestedHousehold = String(b.household_id ?? "").trim();
     if (!role) return fail("bad_role", "Invalid role", 400);
     if (!/^[a-z0-9_]{3,20}$/.test(username)) return fail("bad_username", "Invalid username", 400);
     if (password.length < 6) return fail("short_password", "Password must be at least 6 characters", 400);
     if (!name) return fail("no_name", "Name is required", 400);
 
     const admin = createClient(url, service, { db: { schema: DB_SCHEMA } });
+
+    // La familia debe existir: el cliente no puede inventar un id.
+    const householdId = requestedHousehold || me.household_id;
+    const { data: hh, error: hhError } = await admin
+      .from("households")
+      .select("id")
+      .eq("id", householdId)
+      .maybeSingle();
+    if (hhError) return fail("unknown", hhError.message, 500);
+    if (!hh) return fail("bad_household", "Invalid household", 400);
 
     // 3) Comprobar el usuario antes de crear la cuenta en Auth
     const { data: existing, error: existingError } = await admin
@@ -61,12 +75,12 @@ Deno.serve(async (req) => {
     if (existingError) return fail("unknown", existingError.message, 500);
     if (existing) return fail("exists", "Username already exists", 400);
 
-    // 4) Crear la cuenta en la misma familia (app_metadata solo lo escribe el servidor)
+    // 4) Crear la cuenta en la familia elegida (app_metadata solo lo escribe el servidor)
     const { data: created, error } = await admin.auth.admin.createUser({
       email: `${username}@${EMAIL_DOMAIN}`,
       password,
       email_confirm: true,
-      app_metadata: { app: "house-stars", household_id: me.household_id, role },
+      app_metadata: { app: "house-stars", household_id: householdId, role },
       user_metadata: { username, display_name: name },
     });
     if (error || !created.user) {

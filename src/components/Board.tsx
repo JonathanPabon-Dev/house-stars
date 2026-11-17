@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { key, labelFor, shiftCur, viewDays, weekdayIdx, type View } from "../lib/dates";
 import { makePerms, useCompletions, useGuardians, useMe, useRealtime, useRemoveTask, useTasks, useToggle } from "../lib/data";
+import { useActiveHousehold } from "../lib/household";
 import { useI18n } from "../lib/i18n";
 import { DayView, MonthView, WeekView } from "./Views";
 import TaskDialog from "./TaskDialog";
@@ -10,16 +11,21 @@ const VIEWS: [View, "viewDay" | "viewWeek" | "viewMonth"][] = [["day", "viewDay"
 export default function Board() {
   useRealtime();
   const { t, locale } = useI18n();
-  const { me, members } = useMe();
-  const tasks = useTasks().data ?? [];
-  const guardians = useGuardians().data ?? [];
+  const { me, members: allMembers } = useMe();
+  const { activeId } = useActiveHousehold();
+  // El administrador ve todas las familias: el tablero muestra solo la activa.
+  const members = allMembers.filter((m) => m.household_id === activeId);
+  const tasks = (useTasks().data ?? []).filter((x) => x.household_id === activeId);
+  const guardians = (useGuardians().data ?? []).filter((g) => g.household_id === activeId);
   const [view, setView] = useState<View>("week");
   const [cur, setCur] = useState(() => new Date());
   const [editing, setEditing] = useState(false);
   const [open, setOpen] = useState(false);
 
   const days = useMemo(() => viewDays(view, cur), [view, cur]);
-  const comps = useCompletions(key(days[0]), key(days[days.length - 1])).data ?? [];
+  const comps = (useCompletions(key(days[0]), key(days[days.length - 1])).data ?? []).filter(
+    (c) => c.household_id === activeId,
+  );
   const done = useMemo(() => new Set(comps.map((c) => `${c.task_id}|${c.done_on}`)), [comps]);
   const toggle = useToggle();
   const remove = useRemoveTask();
@@ -94,7 +100,7 @@ export default function Board() {
         {view === "month" ? t("footMonth") : t("footDefault")}
       </p>
 
-      {me && <TaskDialog open={open} onClose={() => setOpen(false)} householdId={me.household_id} members={manageable} />}
+      {me && activeId && <TaskDialog open={open} onClose={() => setOpen(false)} householdId={activeId} members={manageable} />}
     </>
   );
 }

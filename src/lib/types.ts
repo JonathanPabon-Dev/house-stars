@@ -7,7 +7,7 @@ export interface Household {
 
 export interface Member {
   id: string;
-  household_id: string;
+  household_id: string | null; // null solo para el administrador de la aplicación
   user_id: string | null;
   username: string | null;
   name: string;

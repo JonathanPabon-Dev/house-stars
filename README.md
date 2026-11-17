@@ -128,8 +128,9 @@ Hay tres roles en `house_stars.member_role`:
 
 - **`admin`**: cuenta de administración de toda la aplicación, sin familia. Solo existe una y
   es la única que crea cuentas con usuario y contraseña para otras personas. Ve y administra
-  **todas las familias**: miembros, tareas, tutorías y códigos de unión. En la cabecera elige
-  la familia activa con un selector. No aparece en la lista de personas de ninguna familia.
+  **todas las familias**: miembros, tareas, tutorías y códigos de unión. El selector de familia
+  activa está **siempre visible** en la cabecera, también con una sola familia, para saber qué
+  tablero se está viendo. No aparece en la lista de personas de ninguna familia.
 - **`adult`**: cuenta normal con acceso. Agrega personas sin cuenta (sus acogidos), se vincula
   como tutor de los niños y administra sus propias tareas y las de sus acogidos. Quien crea
   una familia queda como `adult`.

@@ -107,7 +107,8 @@ Hay tres roles en `house_stars.member_role`:
 
 - **`admin`**: superusuario único de toda la aplicación. Solo existe uno (lo crea el primer
   registro de familia) y es el único que crea cuentas con usuario y contraseña para otras
-  personas. Puede administrar todos los vínculos de tutoría de su familia.
+  personas. Ve y administra **todas las familias**: miembros, tareas, tutorías y códigos de
+  unión. En la cabecera elige la familia activa con un selector.
 - **`adult`**: cuenta normal con acceso. Agrega personas sin cuenta (sus acogidos), se vincula
   como tutor de los niños y administra sus propias tareas y las de sus acogidos.
 - **`child`**: cuenta normal, con o sin contraseña. Solo marca sus tareas.
@@ -115,9 +116,10 @@ Hay tres roles en `house_stars.member_role`:
 - El **usuario** se convierte en un email interno (`usuario@tablero.local`). No hay recuperación de contraseña por correo: el administrador crea la cuenta de nuevo o se gestiona desde el panel de Supabase.
 - **Crear familia** llama a `signup-household`: crea la familia y la cuenta, y luego inicia sesión. Quien la crea es `adult`, salvo que aún no exista el administrador único de la aplicación.
 - **Unirse a una familia** llama a `join-household`: con el código corto de la familia se crea una cuenta normal (`adult`) en esa familia, sin crear otra familia. Cada familia tiene un código único de 8 caracteres, visible para el administrador y los adultos en Familia → Código para unirse.
-- Solo el administrador ve y usa **Crear cuenta con usuario y contraseña**. `create-member` valida el rol en el servidor: acepta `adult` o `child`, nunca `admin`.
-- El administrador y los adultos agregan personas sin cuenta, que quedan como `child`. El adulto se vincula como tutor desde la tabla de Tutores; el administrador puede editar cualquier vínculo.
-- Cada adulto administra **sus propias tareas y las de sus acogidos** (tutorías muchos a muchos). Cada persona marca solo sus tareas; un adulto también las de sus acogidos.
+- Solo el administrador ve y usa **Crear cuenta con usuario y contraseña**. `create-member` valida el rol en el servidor: acepta `adult` o `child`, nunca `admin`, y crea la cuenta en la familia activa que el administrador elija.
+- El administrador y los adultos agregan personas sin cuenta, que quedan como `child`. El adulto se vincula como tutor desde la tabla de Tutores; el administrador puede editar cualquier vínculo de cualquier familia.
+- Cada adulto administra **sus propias tareas y las de sus acogidos** (tutorías muchos a muchos). Cada persona marca solo sus tareas; un adulto también las de sus acogidos. El administrador administra las de todas las familias.
+- El administrador superusuario está respaldado por `house_stars.is_app_admin()` en las políticas RLS: las ramas de `admin` no se limitan a `current_household_id()`; las de `adult` y `child` sí.
 - La seguridad real está en las políticas RLS (`supabase/migrations`), todas en `house_stars`. La interfaz solo las refleja.
 - La anon key es pública por diseño. Nunca pongas la service role key en el frontend ni en las variables `VITE_*`.
 

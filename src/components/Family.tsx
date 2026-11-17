@@ -95,7 +95,7 @@ export default function Family() {
   return (
     <div className="family">
       <section className="card">
-        <h2>{t("people")}</h2>
+        <h2>{isAdmin && active ? `${t("people")} · ${active.name}` : t("people")}</h2>
         <ul className="plist">
           {members.map((m) => (
             <li key={m.id} style={{ "--c": m.color } as CSSProperties}>

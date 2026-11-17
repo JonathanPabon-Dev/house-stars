@@ -13,7 +13,7 @@ import Help from "./components/Help";
 export default function App() {
   const { session, loading, signOut } = useAuth();
   const { me } = useMe();
-  const { households, activeId, setActiveId } = useActiveHousehold();
+  const { households, active, activeId, setActiveId } = useActiveHousehold();
   const { t } = useI18n();
 
   if (!configured)
@@ -39,7 +39,9 @@ export default function App() {
           <NavLink to="/familia">{t("navFamily")}</NavLink>
         </nav>
         <div className="who">
-          {me?.role === "admin" && households.length > 1 && (
+          {/* El admin siempre ve el selector: sabe qué tablero está mirando incluso
+              cuando solo existe una familia. */}
+          {me?.role === "admin" && households.length > 0 && (
             <select
               className="hhsel"
               aria-label={t("activeFamily")}
@@ -51,6 +53,10 @@ export default function App() {
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>
+          )}
+          {/* Las cuentas normales no eligen familia, pero también ven cuál es la suya. */}
+          {me && me.role !== "admin" && active && (
+            <span className="tag" title={t("activeFamily")}>{active.name}</span>
           )}
           {me && <span>{me.emoji} {me.name}</span>}
           <Preferences />

@@ -118,7 +118,8 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 
 ## Idioma y tema
 
-- Selector **ES / EN** y botón ☀️/🌙 en la cabecera (y en la pantalla de acceso). Ambas preferencias se guardan en el navegador (`hs-lang`, `hs-theme`).
+- En la cabecera, el usuario abre un menú desplegable con **Idioma (ES / EN)**, **Modo claro / oscuro** y **Salir**. En la pantalla de acceso el selector ES/EN y el tema siguen a la vista. Ambas preferencias se guardan en el navegador (`hs-lang`, `hs-theme`).
+- La **ayuda** es un botón flotante siempre visible abajo a la derecha (también en el acceso); en reposo tiene opacidad baja y se resalta al pasar el puntero o al enfocarlo.
 - Idioma inicial: el del navegador (español si empieza por `es`; si no, inglés). Tema inicial: el del sistema.
 - Los textos están en `src/lib/i18n.tsx`. Para agregar un idioma, añade un diccionario con las mismas claves que `es`.
 

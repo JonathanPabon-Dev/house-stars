@@ -57,7 +57,7 @@ guarda su propio historial en `house_stars.schema_migrations`.
 | `join-household` | Pantalla de acceso, sin sesión | Une a una persona a una familia existente con su código; la cuenta queda como adulto normal. |
 | `create-member` | Solo el administrador de la aplicación | Crea la cuenta de otra persona: `adult` o `child`, nunca otro administrador. |
 
-Ambas usan la service role key y crean el usuario con `email_confirm: true`, sin enviar
+Todas usan la service role key y crean el usuario con `email_confirm: true`, sin enviar
 correo real (el email es interno: `usuario@tablero.local`).
 (`SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase.)
 
@@ -119,6 +119,7 @@ El proyecto usa **pnpm** (versión fijada en `packageManager`; actívala con `co
 ## Idioma y tema
 
 - En la cabecera, el usuario abre un menú desplegable con **Idioma (ES / EN)**, **Modo claro / oscuro** y **Salir**. En la pantalla de acceso el selector ES/EN y el tema siguen a la vista. Ambas preferencias se guardan en el navegador (`hs-lang`, `hs-theme`).
+- El menú se cierra con clic fuera, `Escape` o al salir; los cambios de idioma y tema se aplican al instante sin cerrarlo.
 - La **ayuda** es un botón flotante siempre visible abajo a la derecha (también en el acceso); en reposo tiene opacidad baja y se resalta al pasar el puntero o al enfocarlo.
 - Idioma inicial: el del navegador (español si empieza por `es`; si no, inglés). Tema inicial: el del sistema.
 - Los textos están en `src/lib/i18n.tsx`. Para agregar un idioma, añade un diccionario con las mismas claves que `es`.
@@ -150,8 +151,8 @@ Hay tres roles en `house_stars.member_role`:
 ## Estructura
 
 ```
-src/lib/          supabase (cliente con esquema house_stars), auth (usuario→email), datos (React Query), fechas, i18n, tema
-src/components/   Login, Board (día/semana/mes), Views, TaskDialog, Family, Preferences
+src/lib/          supabase (cliente con esquema house_stars), auth (usuario→email), datos (React Query), fechas, household (familia activa), i18n, tema
+src/components/   Login, Board (día/semana/mes), Views, TaskDialog, Family, Preferences, UserMenu, Help
 supabase/migrations/                  house_stars: esquema, trigger de registro, RLS, tutorías, roles y códigos de familia
 supabase/functions/create-member/     crea cuentas de la familia (service role)
 supabase/functions/join-household/    une una cuenta nueva a una familia con su código (service role)
